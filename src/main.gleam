@@ -1,4 +1,9 @@
+import gleam/int
 import gleam/io
+import gleam/list
+import gleam/result
+import gleam/string
+import gleave.{exit}
 import input.{input}
 
 const not_found_command = ": command not found"
@@ -9,9 +14,29 @@ pub fn main() {
 
 fn run_repl() {
   let assert Ok(user_input) = input(prompt: "$ ")
-  print_not_found_message(user_input)
+  let parts = string.split(user_input, " ")
+
+  case parts {
+    [] -> run_repl()
+    [command, ..args] -> handle_command(command, args)
+  }
 
   run_repl()
+}
+
+fn handle_command(command: String, args: List(String)) {
+  case command {
+    "exit" -> {
+      let code =
+        args
+        |> list.first()
+        |> result.try(int.parse)
+        |> result.unwrap(0)
+
+      exit(code)
+    }
+    _ -> print_not_found_message(command)
+  }
 }
 
 fn print_not_found_message(command: String) {
