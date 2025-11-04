@@ -35,6 +35,9 @@ fn handle_command(command: String, args: List(String)) {
 
       exit(code)
     }
+    "echo" -> {
+      io.println(string.join(args, " "))
+    }
     _ -> print_not_found_message(command)
   }
 }
