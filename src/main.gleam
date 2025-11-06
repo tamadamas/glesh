@@ -6,10 +6,6 @@ import gleam/string
 import gleave.{exit}
 import input.{input}
 
-const not_found_command = ": command not found"
-
-const commands = ["exit", "echo", "type"]
-
 pub fn main() {
   run_loop()
 }
@@ -20,42 +16,44 @@ fn run_loop() {
 
   case parts {
     [] -> run_loop()
-    [command, ..args] -> handle_command(command, args)
+    [command, ..args] -> run_command(command, args)
   }
 
   run_loop()
 }
 
-fn handle_command(command: String, args: List(String)) {
+fn run_command(command: String, args: List(String)) {
   case command {
-    "exit" -> {
-      case args {
-        [] -> exit(0)
-        _ -> {
-          args
-          |> list.first()
-          |> result.try(int.parse)
-          |> result.unwrap(1)
-          |> exit
-        }
-      }
-    }
-    "echo" -> io.println(string.join(args, " "))
-    "type" -> {
-      let target = result.unwrap(list.first(args), "")
-      let found = list.find(commands, fn(x) { x == target })
-
-      let message = case found {
-        Ok(_) -> " is a shell builtin"
-        Error(_) -> ": not found"
-      }
-
-      io.println(target <> message)
-    }
-    _ -> print_not_found_message(command)
+    "exit" -> run_exit_command(args)
+    "echo" -> run_echo_command(args)
+    "type" -> run_type_command(args)
+    _ -> io.println(command <> ": command not found")
   }
 }
 
-fn print_not_found_message(command: String) {
-  io.println(command <> not_found_command)
+fn run_exit_command(args: List(String)) {
+  case args {
+    [] -> exit(0)
+    _ -> {
+      args
+      |> list.first()
+      |> result.try(int.parse)
+      |> result.unwrap(1)
+      |> exit
+    }
+  }
+}
+
+fn run_echo_command(args: List(String)) {
+  io.println(string.join(args, " "))
+}
+
+fn run_type_command(args: List(String)) {
+  let target = result.unwrap(list.first(args), "")
+  let message = case target {
+    "exit" | "echo" | "type" -> " is a shell builtin"
+    _ -> ": not found"
+  }
+
+  io.println(target <> message)
 }
