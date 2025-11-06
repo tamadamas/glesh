@@ -2,9 +2,11 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/result
+import gleam/set
 import gleam/string
-import gleave.{exit}
 import input.{input}
+import simplifile
+import system
 
 pub fn main() {
   run_loop()
@@ -33,13 +35,13 @@ fn run_command(command: String, args: List(String)) {
 
 fn run_exit_command(args: List(String)) {
   case args {
-    [] -> exit(0)
+    [] -> system.exit(0)
     _ -> {
       args
       |> list.first()
       |> result.try(int.parse)
       |> result.unwrap(1)
-      |> exit
+      |> system.exit
     }
   }
 }
@@ -52,8 +54,42 @@ fn run_type_command(args: List(String)) {
   let target = result.unwrap(list.first(args), "")
   let message = case target {
     "exit" | "echo" | "type" -> " is a shell builtin"
-    _ -> ": not found"
+    _ -> {
+      case lookup_path(target) {
+        Ok(path) -> " is " <> path
+        Error(_) -> ": not found"
+      }
+    }
   }
 
   io.println(target <> message)
+}
+
+fn lookup_path(command: String) -> Result(String, Nil) {
+  let path_dirs = system.get_path_dirs()
+
+  list.find_map(path_dirs, fn(dir) {
+    case simplifile.is_directory(dir) {
+      Ok(True) -> {
+        dir
+        |> system.path_join(command)
+        |> lookup_command_path
+      }
+      _ -> Error(Nil)
+    }
+  })
+}
+
+fn lookup_command_path(command_path: String) -> Result(String, Nil) {
+  case simplifile.file_info(command_path) {
+    Ok(file_info) -> {
+      let perm = simplifile.file_info_permissions(file_info)
+
+      case set.contains(perm.user, simplifile.Execute) {
+        True -> Ok(command_path)
+        _ -> Error(Nil)
+      }
+    }
+    _ -> Error(Nil)
+  }
 }
