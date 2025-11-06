@@ -1,0 +1,39 @@
+history
+ls
+getnf -i GeistMono
+getnf
+curl -fsSL https://raw.githubusercontent.com/arnavgr/termux-nf/main/install.sh | bash
+pkg install curl ncurses-utils
+echo $FONT_DIR
+ls -a ~/.termux/
+ls ~/.termux/
+gg
+hx .
+./run.sh
+cd glesh/
+mv 7e3603390008b74a/ glesh
+git clone https://git.codecrafters.io/7e3603390008b74a
+cd dev
+mkdir dev
+hx --health gleam
+hx --health
+gleam --health
+pkg install helix-grammars
+pkg search helix
+hx
+gleam --version
+clear
+source .config/fish/config.fish
+pkg install git
+git
+hx .config/fish/config.fish
+pkg install helix
+pkg install starship
+cargo install cargo-edit
+rustc --version
+cargo --version
+pkg install rust gleam erlang elixir
+pkg update && pkg upgrade
+ls storage/
+termux-setup-storage
+exit
