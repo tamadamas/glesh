@@ -46,7 +46,7 @@ fn handle_command(command: String, args: List(String)) {
       let found = list.find(commands, fn(x) { x == target })
 
       let message = case found {
-        Ok(_) -> ": is a shell builtin"
+        Ok(_) -> " is a shell builtin"
         Error(_) -> ": not found"
       }
 
