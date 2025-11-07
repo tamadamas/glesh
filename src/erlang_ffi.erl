@@ -1,4 +1,4 @@
--module(filepath_ffi).
+-module(erlang_ffi).
 
 -export([is_windows/0]).
 

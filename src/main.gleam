@@ -29,7 +29,12 @@ fn run_command(command: String, args: List(String)) {
     "exit" -> run_exit_command(args)
     "echo" -> run_echo_command(args)
     "type" -> run_type_command(args)
-    _ -> io.println(command <> ": command not found")
+    _ -> {
+      case run_external_command(command, args) {
+        True -> io.println("Done.")
+        _ -> io.println(command <> ": command not found")
+      }
+    }
   }
 }
 
@@ -65,10 +70,35 @@ fn run_type_command(args: List(String)) {
   io.println(target <> message)
 }
 
-fn lookup_path(command: String) -> Result(String, Nil) {
-  let path_dirs = system.get_path_dirs()
+fn run_external_command(command: String, args: List(String)) -> Bool {
+  let print_output = fn(output) {
+    list.map(output, fn(item) {
+      case item {
+        system.StdOutOutput(m) -> io.println(m)
+        system.StdErrOutput(m) -> io.println_error(m)
+      }
+    })
+  }
 
-  list.find_map(path_dirs, fn(dir) {
+  case lookup_path(command) {
+    Ok(command_path) -> {
+      case system.run_cmd(command_path, args) {
+        Ok(output) -> {
+          print_output(output)
+          True
+        }
+        Error(message) -> {
+          io.println_error(message)
+          True
+        }
+      }
+    }
+    _ -> False
+  }
+}
+
+fn lookup_path(command: String) -> Result(String, Nil) {
+  list.find_map(system.get_path_dirs(), fn(dir) {
     case simplifile.is_directory(dir) {
       Ok(True) -> {
         dir
