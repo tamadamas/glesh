@@ -41,7 +41,8 @@ defmodule CLI do
     ArgumentError -> System.halt(1)
   end
 
-  defp run_echo_command(_args) do
+  defp run_echo_command(args) do
+    IO.puts(Enum.join(args, " "))
   end
 
   defp run_type_command(_args) do
