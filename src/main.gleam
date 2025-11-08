@@ -4,6 +4,7 @@ import gleam/list
 import gleam/result
 import gleam/set
 import gleam/string
+import glexec as exec
 import input.{input}
 import simplifile
 import system
@@ -71,27 +72,32 @@ fn run_type_command(args: List(String)) {
 }
 
 fn run_external_command(command: String, args: List(String)) -> Bool {
-  let print_output = fn(output) {
-    list.map(output, fn(item) {
-      case item {
-        system.StdOutOutput(m) -> io.println(m)
-        system.StdErrOutput(m) -> io.println_error(m)
+  let print_output = fn(output: exec.Output) {
+    case output {
+      exec.Output(result) -> {
+        list.map(result, fn(item) {
+          case item {
+            exec.Stdout(list) -> io.println(string.join(list, "\n"))
+            exec.Stderr(list) -> io.println_error(string.join(list, "\n"))
+          }
+        })
       }
-    })
+    }
   }
 
   case lookup_path(command) {
     Ok(command_path) -> {
-      case system.run_cmd(command_path, args) {
-        Ok(output) -> {
-          print_output(output)
-          True
-        }
-        Error(message) -> {
-          io.println_error(message)
-          True
-        }
+      let result =
+        exec.new()
+        |> exec.with_stdout(exec.StdoutCapture)
+        |> exec.run_sync(exec.Execve([command_path, ..args]))
+
+      case result {
+        Ok(output) -> print_output(output)
+        Error(error) -> print_output(error.output)
       }
+
+      True
     }
     _ -> False
   }
