@@ -4,7 +4,7 @@ defmodule App.MixProject do
 
   def project do
     [
-      app: :codecrafters_shell,
+      app: :glesh,
       version: "1.0.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,

@@ -9,4 +9,4 @@
 set -e # Exit on failure
 
 mix escript.build
-mv codecrafters_shell /tmp/codecrafters-build-shell-elixir
+mv glesh /tmp/glesh-build-shell-elixir

@@ -17,16 +17,7 @@ defmodule CLI do
     run_loop()
   end
 
-  defp run_command(command, args) do
-    case command do
-      "exit" -> run_exit_command(args)
-      "echo" -> run_echo_command(args)
-      "type" -> run_type_command(args)
-      _ -> IO.puts("#{command}: command not found")
-    end
-  end
-
-  defp run_exit_command(args) do
+  defp run_command("exit", args) do
     case args do
       [] ->
         System.halt(0)
@@ -41,10 +32,14 @@ defmodule CLI do
     ArgumentError -> System.halt(1)
   end
 
-  defp run_echo_command(args) do
+  defp run_command("echo", args) do
     IO.puts(Enum.join(args, " "))
   end
 
-  defp run_type_command(_args) do
+  defp run_command("type", _args) do
+  end
+
+  defp run_command(command, _args) do
+    IO.puts("#{command}: command not found")
   end
 end

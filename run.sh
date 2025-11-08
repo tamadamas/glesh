@@ -15,7 +15,7 @@ set -e # Exit early if any commands fail
 (
   cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
   mix escript.build
-  mv codecrafters_shell /tmp/codecrafters-build-shell-elixir
+  mv glesh /tmp/glesh-build-shell-elixir
 )
 
 # Copied from .codecrafters/run.sh
@@ -23,4 +23,4 @@ set -e # Exit early if any commands fail
 # - Edit this to change how your program runs locally
 # - Edit .codecrafters/run.sh to change how your program runs remotely
 mix format
-exec /tmp/codecrafters-build-shell-elixir "$@"
+exec /tmp/glesh-build-shell-elixir "$@"
