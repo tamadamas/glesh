@@ -1,4 +1,6 @@
 defmodule CLI do
+  @builtins ["exit", "echo", "type", "pwd"]
+
   def main(_args) do
     run_loop()
   end
@@ -17,7 +19,7 @@ defmodule CLI do
     run_loop()
   end
 
-  defp run_command("exit", args) do
+  def run_command("exit", args) do
     case args do
       [] ->
         System.halt(0)
@@ -32,32 +34,33 @@ defmodule CLI do
     ArgumentError -> System.halt(1)
   end
 
-  defp run_command("echo", args) do
+  def run_command("echo", args) do
     IO.puts(Enum.join(args, " "))
   end
 
-  defp run_command("type", args) do
-    target = List.first(args, "")
+  def run_command("type", []) do
+    IO.puts("type: <arg> is required")
+  end
 
+  def run_command("type", [target | _]) when target in @builtins do
+    IO.puts("#{target} is a shell builtin")
+  end
+
+  def run_command("type", [target | _]) do
     message =
-      case target do
-        "" ->
-          "type: <arg> is required"
-
-        builtin when builtin in ["exit", "echo", "type"] ->
-          " is a shell builtin"
-
-        _ ->
-          case lookup_path(target) do
-            {:ok, path} -> " is #{path}"
-            {:error} -> ": not found"
-          end
+      case lookup_path(target) do
+        {:ok, path} -> " is #{path}"
+        {:error} -> ": not found"
       end
 
     IO.puts(target <> message)
   end
 
-  defp run_command(command, args) do
+  def run_command("pwd", _args) do
+    IO.puts(File.cwd!())
+  end
+
+  def run_command(command, args) do
     case lookup_path(command) do
       {:ok, path} ->
         case System.cmd(path, args, arg0: command) do
@@ -70,7 +73,7 @@ defmodule CLI do
     end
   end
 
-  defp lookup_path(command) do
+  def lookup_path(command) do
     case System.find_executable(command) do
       nil -> {:error}
       path -> {:ok, path}
