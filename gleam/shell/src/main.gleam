@@ -59,6 +59,7 @@ fn run_echo_command(args: List(String)) {
 fn run_type_command(args: List(String)) {
   let target = result.unwrap(list.first(args), "")
   let message = case target {
+    "" -> ": <arg> is required"
     "exit" | "echo" | "type" -> " is a shell builtin"
     _ -> {
       case lookup_path(target) {

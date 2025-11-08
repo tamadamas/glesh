@@ -36,10 +36,35 @@ defmodule CLI do
     IO.puts(Enum.join(args, " "))
   end
 
-  defp run_command("type", _args) do
+  defp run_command("type", args) do
+    target = List.first(args, "")
+
+    message =
+      case target do
+        "" ->
+          "type: <arg> is required"
+
+        builtin when builtin in ["exit", "echo", "type"] ->
+          " is a shell builtin"
+
+        _ ->
+          case lookup_path(target) do
+            {:ok, path} -> " is #{path}"
+            {:error} -> ": not found"
+          end
+      end
+
+    IO.puts(target <> message)
   end
 
   defp run_command(command, _args) do
     IO.puts("#{command}: command not found")
+  end
+
+  defp lookup_path(command) do
+    case System.find_executable(command) do
+      nil -> {:error}
+      path -> {:ok, path}
+    end
   end
 end
