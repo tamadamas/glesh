@@ -80,13 +80,13 @@ defmodule CLI do
     File.cd!("..")
   end
 
-  def run_command("cd", ["/" <> rest]) do
-    case File.cd("/#{rest}") do
+  def run_command("cd", [dir]) do
+    case File.cd(dir) do
       :ok ->
         :ok
 
       {:error, _} ->
-        IO.puts(:stderr, "cd: /#{rest}: No such file or directory")
+        IO.puts(:stderr, "cd: #{dir}: No such file or directory")
     end
   end
 
