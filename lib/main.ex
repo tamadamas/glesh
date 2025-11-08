@@ -61,8 +61,8 @@ defmodule CLI do
     case lookup_path(command) do
       {:ok, path} ->
         case System.cmd(path, args, arg0: command) do
-          {output, 0} -> IO.puts(output)
-          {error, _} -> IO.puts(:stderr, error)
+          {output, 0} -> IO.write(output)
+          {error, _} -> IO.write(:stderr, error)
         end
 
       {:error} ->
