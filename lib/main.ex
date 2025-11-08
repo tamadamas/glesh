@@ -57,8 +57,17 @@ defmodule CLI do
     IO.puts(target <> message)
   end
 
-  defp run_command(command, _args) do
-    IO.puts("#{command}: command not found")
+  defp run_command(command, args) do
+    case lookup_path(command) do
+      {:ok, path} ->
+        case System.cmd(path, args) do
+          {output, 0} -> IO.puts(output)
+          {error, _} -> IO.puts(:stderr, error)
+        end
+
+      {:error} ->
+        IO.puts("#{command}: command not found")
+    end
   end
 
   defp lookup_path(command) do
