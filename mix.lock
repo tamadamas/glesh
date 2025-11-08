@@ -1,0 +1,3 @@
+%{
+  "pre_commit": {:hex, :pre_commit, "0.3.4", "e2850f80be8090d50ad8019ef2426039307ff5dfbe70c736ad0d4d401facf304", [:mix], [], "hexpm", "16f684ba4f1fed1cba6b19e082b0f8d696e6f1c679285fedf442296617ba5f4e"},
+}
