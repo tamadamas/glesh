@@ -1,6 +1,8 @@
-defmodule CliTest do
-  use ExUnit.Case
+defmodule CLITest do
+  use ExUnit.Case, async: true
   import ExUnit.CaptureIO
+
+  IO.puts("CLITest module is loading!")
 
   describe "run_command/2 - exit" do
     test "exits with code 0 when no args provided" do

@@ -1,5 +1,5 @@
 defmodule CLI do
-  @builtins ["exit", "echo", "type", "pwd"]
+  @builtins ["exit", "echo", "type", "pwd", "cd"]
 
   def main(_args) do
     run_loop()
@@ -58,6 +58,36 @@ defmodule CLI do
 
   def run_command("pwd", _args) do
     IO.puts(File.cwd!())
+  end
+
+  def run_command("cd", args) when args in [[], ["~"]] do
+    File.cd!(System.user_home!())
+  end
+
+  def run_command("~", []) do
+    File.cd!(System.user_home!())
+  end
+
+  def run_command("cd", ["."]) do
+    :ok
+  end
+
+  def run_command("cd", [".."]) do
+    File.cd!("..")
+  end
+
+  def run_command("..", []) do
+    File.cd!("..")
+  end
+
+  def run_command("cd", ["/" <> rest]) do
+    case File.cd("/#{rest}") do
+      :ok ->
+        :ok
+
+      {:error, _} ->
+        IO.puts(:stderr, "cd: /#{rest}: No such file or directory")
+    end
   end
 
   def run_command(command, args) do
