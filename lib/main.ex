@@ -86,7 +86,7 @@ defmodule CLI do
         :ok
 
       {:error, _} ->
-        IO.puts(:stderr, "cd /#{rest}: No such file or directory")
+        IO.puts(:stderr, "cd: /#{rest}: No such file or directory")
     end
   end
 
