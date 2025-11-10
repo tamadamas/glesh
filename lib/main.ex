@@ -12,8 +12,14 @@ defmodule CLI do
       |> String.split(" ")
 
     case user_input do
-      [] -> run_loop()
-      [command | args] -> run_command(command, args)
+      [] ->
+        run_loop()
+
+      [command | args] ->
+        case run_command(command, args) do
+          {:ok, output} -> write(output)
+          {:error, error} -> write_output(:stderr, error)
+        end
     end
 
     run_loop()
@@ -35,15 +41,15 @@ defmodule CLI do
   end
 
   def run_command("echo", args) do
-    IO.puts(Enum.join(args, " "))
+    {:ok, Enum.join(args, " ")}
   end
 
   def run_command("type", []) do
-    IO.puts("type: <arg> is required")
+    {:ok, "type: <arg> is required"}
   end
 
   def run_command("type", [target | _]) when target in @builtins do
-    IO.puts("#{target} is a shell builtin")
+    {:ok, "#{target} is a shell builtin"}
   end
 
   def run_command("type", [target | _]) do
@@ -53,11 +59,11 @@ defmodule CLI do
         {:error} -> ": not found"
       end
 
-    IO.puts(target <> message)
+    {:ok, target <> message}
   end
 
   def run_command("pwd", _args) do
-    IO.puts(File.cwd!())
+    {:ok, File.cwd!()}
   end
 
   def run_command("cd", args) when args in [[], ["~"]] do
@@ -108,5 +114,13 @@ defmodule CLI do
       nil -> {:error}
       path -> {:ok, path}
     end
+  end
+
+  def write_output(output) when is_binary(output) do
+    IO.write(output)
+  end
+
+  def write_output(:stderr, output) when is_binary(output) do
+    IO.write(:stderr, output)
   end
 end
