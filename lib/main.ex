@@ -122,14 +122,11 @@ defmodule CLI do
   end
 
   def write_output(output, device \\ :stdio, options \\ []) do
-    output =
-      if Keyword.get(options, :no_newline, false) or String.ends_with?(output, "\n") do
-        output
-      else
-        output <> "\n"
-      end
-
     IO.write(device, output)
+
+    unless Keyword.get(options, :no_newline, false) or String.ends_with?(output, "\n") do
+      IO.write(device, "\n")
+    end
   end
 
   def parse_args(user_input) do
