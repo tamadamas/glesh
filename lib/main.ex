@@ -17,7 +17,8 @@ defmodule CLI do
 
       [command | args] ->
         case run_command(command, args) do
-          {:ok, output} -> write(output)
+          :ok -> :ok
+          {:ok, output} -> write_output(output)
           {:error, error} -> write_output(:stderr, error)
         end
     end
@@ -45,7 +46,7 @@ defmodule CLI do
   end
 
   def run_command("type", []) do
-    {:ok, "type: <arg> is required"}
+    {:error, "type: <arg> is required"}
   end
 
   def run_command("type", [target | _]) when target in @builtins do
@@ -56,7 +57,7 @@ defmodule CLI do
     message =
       case lookup_path(target) do
         {:ok, path} -> " is #{path}"
-        {:error} -> ": not found"
+        {:error, _} -> ": not found"
       end
 
     {:ok, target <> message}
@@ -68,10 +69,12 @@ defmodule CLI do
 
   def run_command("cd", args) when args in [[], ["~"]] do
     File.cd!(System.user_home!())
+    :ok
   end
 
   def run_command("~", []) do
     File.cd!(System.user_home!())
+    :ok
   end
 
   def run_command("cd", ["."]) do
@@ -80,10 +83,12 @@ defmodule CLI do
 
   def run_command("cd", [".."]) do
     File.cd!("..")
+    :ok
   end
 
   def run_command("..", []) do
     File.cd!("..")
+    :ok
   end
 
   def run_command("cd", [dir]) do
@@ -92,7 +97,7 @@ defmodule CLI do
         :ok
 
       {:error, _} ->
-        IO.puts(:stderr, "cd: #{dir}: No such file or directory")
+        {:error, "cd: #{dir}: No such file or directory"}
     end
   end
 
@@ -100,27 +105,29 @@ defmodule CLI do
     case lookup_path(command) do
       {:ok, path} ->
         case System.cmd(path, args, arg0: command) do
-          {output, 0} -> IO.write(output)
-          {error, _} -> IO.write(:stderr, error)
+          {output, 0} -> {:ok, output}
+          {error, _} -> {:error, error}
         end
 
-      {:error} ->
-        IO.puts("#{command}: command not found")
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   def lookup_path(command) do
     case System.find_executable(command) do
-      nil -> {:error}
+      nil -> {:error, "#{command}: command not found"}
       path -> {:ok, path}
     end
   end
 
-  def write_output(output) when is_binary(output) do
-    IO.write(output)
-  end
+  def write_output(device \\ :stdio, output) do
+    output =
+      case String.ends_with?(output, "\n") do
+        true -> output
+        false -> output <> "\n"
+      end
 
-  def write_output(:stderr, output) when is_binary(output) do
-    IO.write(:stderr, output)
+    IO.write(device, output)
   end
 end
