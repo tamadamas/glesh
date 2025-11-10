@@ -19,7 +19,9 @@ defmodule CLI do
         case run_command(command, args) do
           :ok -> :ok
           {:ok, output} -> write_output(output)
-          {:error, error} -> write_output(:stderr, error)
+          {:error, error} -> write_output(error, :stderr)
+          {:ok, output, opts} -> write_output(output, :stdio, opts)
+          {:error, error, opts} -> write_output(error, :stderr, opts)
         end
     end
 
@@ -105,8 +107,8 @@ defmodule CLI do
     case lookup_path(command) do
       {:ok, path} ->
         case System.cmd(path, args, arg0: command) do
-          {output, 0} -> {:ok, output}
-          {error, _} -> {:error, error}
+          {output, 0} -> {:ok, output, [no_newline: true]}
+          {error, _} -> {:error, error, [no_newline: true]}
         end
 
       {:error, error} ->
@@ -121,11 +123,12 @@ defmodule CLI do
     end
   end
 
-  def write_output(device \\ :stdio, output) do
+  def write_output(output, device \\ :stdio, options \\ []) do
     output =
-      case String.ends_with?(output, "\n") do
-        true -> output
-        false -> output <> "\n"
+      if Keyword.get(options, :no_newline, false) or String.ends_with?(output, "\n") do
+        output
+      else
+        output <> "\n"
       end
 
     IO.write(device, output)
