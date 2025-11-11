@@ -11,19 +11,41 @@ defmodule CLI do
       |> String.trim()
       |> parse_args
 
-    case user_input do
-      [] ->
-        run_loop()
-
-      args when Keyword.keyword?(args) ->
-        case eval_input(args) do
-          :ok -> :ok
-          {:ok, output} -> write_output(output)
-          {:error, error} -> write_output(error, :stderr)
-        end
+    if Keyword.has_key?(user_input, :cmd) do
+      eval_input(user_input)
     end
 
     run_loop()
+  end
+
+  def eval_input(user_input) do
+    cmd = Keyword.get(user_input, :cmd)
+    args = Keyword.get(user_input, :args)
+
+    case run_command(cmd, args) do
+      :ok ->
+        :ok
+
+      {:ok, result} ->
+        IO.puts(result)
+
+      {:error, message} ->
+        IO.puts(message)
+
+      {:ok, result, opts} ->
+        IO.write(result)
+
+        unless Keyword.has_key?(opts, :no_newline) do
+          IO.write("\n")
+        end
+
+      {:error, message, opts} ->
+        IO.write(:stderr, message)
+
+        unless Keyword.has_key?(opts, :no_newline) do
+          IO.write("\n")
+        end
+    end
   end
 
   def run_command("exit", args) do
@@ -121,38 +143,35 @@ defmodule CLI do
     end
   end
 
-  def write_output(output, device \\ :stdio, options \\ []) do
-    IO.write(device, output)
+  defp parse_args("") do
+    []
+  end
 
-    unless Keyword.get(options, :no_newline, false) or String.ends_with?(output, "\n") do
-      IO.write(device, "\n")
+  defp parse_args(user_input) do
+    {command_part, redirects} = parse_redirects(user_input)
+
+    case String.split(command_part, " ") |> Enum.map(&String.trim/1) do
+      [] ->
+        []
+
+      [cmd | args] ->
+        Keyword.merge(redirects, cmd: cmd, args: args)
     end
   end
 
-  def parse_args(user_input) do
-    do_parse_args(user_input, [])
+  defp parse_redirects(user_input) do
+    cond do
+      String.contains?(user_input, ">>") -> split_redirect(user_input, ">>")
+      String.contains?(user_input, ">") -> split_redirect(user_input, ">")
+      true -> {user_input, []}
+    end
   end
 
-  defp do_parse_args("", _) do: []
+  defp split_redirect(input, delimiter) do
+    [command, file] =
+      String.split(input, delimiter, parts: 2)
+      |> Enum.map(&String.trim/1)
 
-
-  defp do_parse_args(user_input, args) do
-    if String.contains?(user_input, ">>") do
-      [left, right] = String.split(user_input, ">>", 2)
-      let args = Keyword.merge(args, file: right |> String.trim(), append: true)
-      do_parse_args(left, args)
-      end
-
-    if String.contains?(user_input, ">") do
-      [left, right] = String.split(user_input, ">", 2)
-      let args = Keyword.merge(args, file: right | String.trim())
-      do_parse_args(left, args)
-      end
-
-      let parts = user_input |> String.strip(" ") |> String.trim()
-
-      [cmd | opts] = parts
-      Keyword.merge(args, cmd: cmd, opts: opts)
-  end
+    {command, [file: file, append: delimiter == ">>"]}
   end
 end
