@@ -82,7 +82,12 @@ defmodule CLI do
   end
 
   def run_command("echo", args) do
-    {:ok, Enum.join(args, " ")}
+    message =
+      args
+      |> Enum.map(&strip_quotes/1)
+      |> Enum.join(" ")
+
+    {:ok, message}
   end
 
   def run_command("type", []) do
@@ -168,7 +173,7 @@ defmodule CLI do
   defp parse_args(user_input) do
     {command_part, redirects} = parse_redirects(user_input)
 
-    case String.split(command_part, " ") |> Enum.map(&String.trim/1) do
+    case String.split(command_part, " ", parts: 2) |> Enum.map(&String.trim/1) do
       [] ->
         []
 
@@ -179,6 +184,8 @@ defmodule CLI do
 
   defp parse_redirects(user_input) do
     cond do
+      String.contains?(user_input, "1>>") -> split_redirect(user_input, "1>>")
+      String.contains?(user_input, "1>") -> split_redirect(user_input, "1>")
       String.contains?(user_input, ">>") -> split_redirect(user_input, ">>")
       String.contains?(user_input, ">") -> split_redirect(user_input, ">")
       true -> {user_input, []}
@@ -190,7 +197,7 @@ defmodule CLI do
       String.split(input, delimiter, parts: 2)
       |> Enum.map(&String.trim/1)
 
-    {command, [file: file, append: delimiter == ">>"]}
+    {command, [file: file, append: delimiter == ">>" || delimiter == "1>>"]}
   end
 
   def write_output(output, device \\ :stdio, opts \\ []) do
@@ -199,5 +206,13 @@ defmodule CLI do
     unless Keyword.has_key?(opts, :no_newline) do
       IO.write(device, "\n")
     end
+  end
+
+  defp strip_quotes(arg) do
+    Enum.find_value(["\"", "'"], arg, fn quote ->
+      if String.starts_with?(arg, quote) and String.ends_with?(arg, quote) do
+        String.slice(arg, 1..-2//1)
+      end
+    end)
   end
 end
