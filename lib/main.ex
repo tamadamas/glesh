@@ -12,39 +12,57 @@ defmodule CLI do
       |> parse_args
 
     if Keyword.has_key?(user_input, :cmd) do
-      eval_input(user_input)
+      execute(user_input)
     end
 
     run_loop()
   end
 
-  def eval_input(user_input) do
+  def execute(user_input) do
+    # Possible input. It might contain redirection to file
+    # [file: "a.txt", append: false, cmd: "ls", opts: ["-l"]]
+    # [file: "a.txt", append: true, cmd: "ls", opts: ["-l"]]
     cmd = Keyword.get(user_input, :cmd)
     args = Keyword.get(user_input, :args)
 
-    case run_command(cmd, args) do
-      :ok ->
-        :ok
+    # TODO: Implement for error redirections
+    device =
+      cond do
+        Keyword.has_key?(user_input, :file) ->
+          path = Keyword.get(user_input, :file)
 
-      {:ok, result} ->
-        IO.puts(result)
+          {:ok, file} =
+            if Keyword.get(user_input, :append) do
+              File.open(path, [:append, :utf8])
+            else
+              File.open(path, [:write, :utf8])
+            end
 
-      {:error, message} ->
-        IO.puts(message)
+          file
 
-      {:ok, result, opts} ->
-        IO.write(result)
+        true ->
+          :stdio
+      end
 
-        unless Keyword.has_key?(opts, :no_newline) do
-          IO.write("\n")
-        end
+    try do
+      case run_command(cmd, args) do
+        :ok ->
+          :ok
 
-      {:error, message, opts} ->
-        IO.write(:stderr, message)
+        {:ok, result} ->
+          write_output(result, device)
 
-        unless Keyword.has_key?(opts, :no_newline) do
-          IO.write("\n")
-        end
+        {:error, message} ->
+          write_output(message, :stderr)
+
+        {:ok, result, opts} ->
+          write_output(result, device, opts)
+
+        {:error, message, opts} ->
+          write_output(message, :stderr, opts)
+      end
+    after
+      !is_atom(device) && File.close(device)
     end
   end
 
@@ -173,5 +191,13 @@ defmodule CLI do
       |> Enum.map(&String.trim/1)
 
     {command, [file: file, append: delimiter == ">>"]}
+  end
+
+  def write_output(output, device \\ :stdio, opts \\ []) do
+    IO.write(device, output)
+
+    unless Keyword.has_key?(opts, :no_newline) do
+      IO.write(device, "\n")
+    end
   end
 end
