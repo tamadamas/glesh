@@ -9,19 +9,17 @@ defmodule CLI do
     user_input =
       IO.gets("$ ")
       |> String.trim()
-      |> String.split(" ")
+      |> parse_args
 
     case user_input do
       [] ->
         run_loop()
 
-      [command | args] ->
-        case run_command(command, args) do
+      args when Keyword.keyword?(args) ->
+        case eval_input(args) do
           :ok -> :ok
           {:ok, output} -> write_output(output)
           {:error, error} -> write_output(error, :stderr)
-          {:ok, output, opts} -> write_output(output, :stdio, opts)
-          {:error, error, opts} -> write_output(error, :stderr, opts)
         end
     end
 
@@ -132,5 +130,32 @@ defmodule CLI do
       end
 
     IO.write(device, output)
+  end
+
+  def parse_args(user_input) do
+    do_parse_args(user_input, [])
+  end
+
+  defp do_parse_args("", _) do: []
+
+
+  defp do_parse_args(user_input, args) do
+    if String.contains?(user_input, ">>") do
+      [left, right] = String.split(user_input, ">>", 2)
+      let args = Keyword.merge(args, file: right |> String.trim(), append: true)
+      do_parse_args(left, args)
+      end
+
+    if String.contains?(user_input, ">") do
+      [left, right] = String.split(user_input, ">", 2)
+      let args = Keyword.merge(args, file: right | String.trim())
+      do_parse_args(left, args)
+      end
+
+      let parts = user_input |> String.strip(" ") |> String.trim()
+
+      [cmd | opts] = parts
+      Keyword.merge(args, cmd: cmd, opts: opts)
+  end
   end
 end
