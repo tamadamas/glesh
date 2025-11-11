@@ -84,8 +84,8 @@ defmodule CLI do
   def run_command("echo", args) do
     message =
       args
-      |> Enum.map(&strip_quotes/1)
       |> Enum.join(" ")
+      |> strip_quotes
 
     {:ok, message}
   end
@@ -166,14 +166,14 @@ defmodule CLI do
     end
   end
 
-  defp parse_args("") do
+  def parse_args("") do
     []
   end
 
-  defp parse_args(user_input) do
+  def parse_args(user_input) do
     {command_part, redirects} = parse_redirects(user_input)
 
-    case String.split(command_part, " ", parts: 2) |> Enum.map(&String.trim/1) do
+    case String.split(command_part, " ") |> Enum.map(&String.trim/1) do
       [] ->
         []
 
