@@ -9,7 +9,7 @@ defmodule CLI do
     user_input =
       IO.gets("$ ")
       |> String.trim()
-      |> parse_args
+      |> InputParser.parse()
 
     if Keyword.has_key?(user_input, :cmd) do
       execute(user_input)
@@ -22,7 +22,8 @@ defmodule CLI do
     cmd = Keyword.get(user_input, :cmd)
     args = Keyword.get(user_input, :args)
 
-    device = init_device(user_input)
+    out_device = init_device(user_input, :stdout)
+    err_device = init_device(user_input, :stderr)
 
     try do
       case run_command(cmd, args) do
@@ -30,16 +31,18 @@ defmodule CLI do
           :ok
 
         {:ok, result} ->
-          write_output(result, device)
-
-        {:ok, result, opts} ->
-          write_output(result, device, opts)
+          write_output(result, out_device)
 
         {:error, message} ->
-          write_output(message, device)
+          write_output(message, out_device)
+
+        {success, error} ->
+          write_output(success, out_device, no_newline: true)
+          write_output(error, err_device, no_newline: true)
       end
     after
-      !is_atom(device) && File.close(device)
+      !is_atom(out_device) && File.close(out_device)
+      !is_atom(err_device) && File.close(err_device)
     end
   end
 
@@ -116,8 +119,9 @@ defmodule CLI do
   def run_command(command, args) do
     case lookup_path(command) do
       {:ok, path} ->
-        {output, _exit_code} = System.cmd(path, args, arg0: command)
-        {:ok, output, [no_newline: true]}
+        {_, %Rambo{out: result, err: error}} = Rambo.run(path, args, log: false)
+
+        {result, error}
 
       {:error, error} ->
         {:error, error}
@@ -129,40 +133,6 @@ defmodule CLI do
       nil -> {:error, "#{command}: command not found"}
       path -> {:ok, path}
     end
-  end
-
-  def parse_args("") do
-    []
-  end
-
-  def parse_args(user_input) do
-    {command_part, redirects} = parse_redirects(user_input)
-
-    case String.split(command_part, " ") |> Enum.map(&String.trim/1) do
-      [] ->
-        []
-
-      [cmd | args] ->
-        Keyword.merge(redirects, cmd: cmd, args: args)
-    end
-  end
-
-  defp parse_redirects(user_input) do
-    cond do
-      String.contains?(user_input, "1>>") -> split_redirect(user_input, "1>>")
-      String.contains?(user_input, "1>") -> split_redirect(user_input, "1>")
-      String.contains?(user_input, ">>") -> split_redirect(user_input, ">>")
-      String.contains?(user_input, ">") -> split_redirect(user_input, ">")
-      true -> {user_input, []}
-    end
-  end
-
-  defp split_redirect(input, delimiter) do
-    [command, file] =
-      String.split(input, delimiter, parts: 2)
-      |> Enum.map(&String.trim/1)
-
-    {command, [file: file, append: delimiter == ">>" || delimiter == "1>>"]}
   end
 
   def write_output(output, device \\ :stdio, opts \\ []) do
@@ -184,13 +154,14 @@ defmodule CLI do
     end)
   end
 
-  defp init_device(user_input) do
+  # context = :stdout || :stderr
+  defp init_device(user_input, context) do
     cond do
-      Keyword.has_key?(user_input, :file) ->
-        path = Keyword.get(user_input, :file)
+      Keyword.has_key?(user_input, context) ->
+        {path, append} = Keyword.get(user_input, context)
 
         {:ok, file} =
-          if Keyword.get(user_input, :append) do
+          if append do
             File.open(path, [:append, :utf8])
           else
             File.open(path, [:write, :utf8])
@@ -199,7 +170,10 @@ defmodule CLI do
         file
 
       true ->
-        :stdio
+        case context do
+          :stdout -> :stdio
+          :stderr -> :stderr
+        end
     end
   end
 end
