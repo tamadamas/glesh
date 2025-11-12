@@ -19,9 +19,6 @@ defmodule CLI do
   end
 
   def execute(user_input) do
-    # Possible input. It might contain redirection to file
-    # [file: "a.txt", append: false, cmd: "ls", opts: ["-l"]]
-    # [file: "a.txt", append: true, cmd: "ls", opts: ["-l"]]
     cmd = Keyword.get(user_input, :cmd)
     args = Keyword.get(user_input, :args)
 
@@ -52,14 +49,11 @@ defmodule CLI do
         {:ok, result} ->
           write_output(result, device)
 
-        {:error, message} ->
-          write_output(message, :stderr)
-
         {:ok, result, opts} ->
           write_output(result, device, opts)
 
-        {:error, message, opts} ->
-          write_output(message, :stderr, opts)
+        {:error, message} ->
+          write_output(message, :stderr)
       end
     after
       !is_atom(device) && File.close(device)
@@ -149,10 +143,8 @@ defmodule CLI do
   def run_command(command, args) do
     case lookup_path(command) do
       {:ok, path} ->
-        case System.cmd(path, args, arg0: command) do
-          {output, 0} -> {:ok, output, [no_newline: true]}
-          {error, _} -> {:error, error, [no_newline: true]}
-        end
+        {output, _exit_code} = System.cmd(path, args, arg0: command)
+        {:ok, output, [no_newline: true]}
 
       {:error, error} ->
         {:error, error}
