@@ -36,7 +36,7 @@ defmodule CLI do
           write_output(result, device, opts)
 
         {:error, message} ->
-          write_output(message, :stderr)
+          write_output(message, device)
       end
     after
       !is_atom(device) && File.close(device)
@@ -166,11 +166,14 @@ defmodule CLI do
   end
 
   def write_output(output, device \\ :stdio, opts \\ []) do
-    IO.write(device, output)
-
-    unless Keyword.has_key?(opts, :no_newline) do
-      IO.write(device, "\n")
-    end
+    IO.write(
+      device,
+      if Keyword.has_key?(opts, :no_newline) do
+        output
+      else
+        [output, ?\n]
+      end
+    )
   end
 
   defp strip_quotes(arg) do
