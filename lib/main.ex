@@ -22,24 +22,7 @@ defmodule CLI do
     cmd = Keyword.get(user_input, :cmd)
     args = Keyword.get(user_input, :args)
 
-    # TODO: Implement for error redirections
-    device =
-      cond do
-        Keyword.has_key?(user_input, :file) ->
-          path = Keyword.get(user_input, :file)
-
-          {:ok, file} =
-            if Keyword.get(user_input, :append) do
-              File.open(path, [:append, :utf8])
-            else
-              File.open(path, [:write, :utf8])
-            end
-
-          file
-
-        true ->
-          :stdio
-      end
+    device = init_device(user_input)
 
     try do
       case run_command(cmd, args) do
@@ -111,17 +94,7 @@ defmodule CLI do
     :ok
   end
 
-  def run_command("~", []) do
-    File.cd!(System.user_home!())
-    :ok
-  end
-
   def run_command("cd", ["."]) do
-    :ok
-  end
-
-  def run_command("cd", [".."]) do
-    File.cd!("..")
     :ok
   end
 
@@ -206,5 +179,24 @@ defmodule CLI do
         String.slice(arg, 1..-2//1)
       end
     end)
+  end
+
+  defp init_device(user_input) do
+    cond do
+      Keyword.has_key?(user_input, :file) ->
+        path = Keyword.get(user_input, :file)
+
+        {:ok, file} =
+          if Keyword.get(user_input, :append) do
+            File.open(path, [:append, :utf8])
+          else
+            File.open(path, [:write, :utf8])
+          end
+
+        file
+
+      true ->
+        :stdio
+    end
   end
 end
